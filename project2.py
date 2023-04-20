@@ -18,6 +18,8 @@ def preprocess_data(file_name):
     data = pd.read_csv(file_name)
 
     # do things
+    data = data.drop(["fnlwgt", "education", "relationship"], axis = 1)
+
 
     return data
 
