@@ -17,7 +17,30 @@ def preprocess_data(file_name):
     # Load the data and perform preprocessing steps
     data = pd.read_csv(file_name)
 
-    # do things
+    # Removing the attributes "fnlwgt", "education", and "relationship"
+    data = data.drop(["fnlwgt", "education", "relationship"], axis = 1)
+
+    # Checking if there are any missing values 
+    # workclass and occupation have '?' values, so we are removing those rows
+    data = data.drop(data[data['occupation'] == '?'].index | data[data['workclass'] == '?'].index)
+
+    # Preprocessing for native.country
+    data.loc[data['native.country'] != 'United-States', 'native.country'] = 'Other'
+    
+    # Preprocessing for workclass
+    data['workclass'] = np.where((data['workclass'] == 'Without-pay') | (data['workclass'] == 'Never-worked'), 'Not-working', data['workclass'])
+    data['workclass'] = np.where((data['workclass'] == 'Self-emp-inc') | (data['workclass'] == 'Self-emp-not-inc'),  'Self-employed', data['workclass'])
+    data['workclass'] = np.where((data['workclass'] == 'Federal-gov') | (data['workclass'] == 'Local-gov') | (data['workclass'] == 'State-gov'), 'Gov', data['workclass'])
+    
+    # Preprocessing for marital.status
+    data['marital.status'] = np.where((data['marital.status'] == 'Married-AF-spouse') | (data['marital.status'] == 'Married-civ-spouse'), 'Married', data['marital.status'])
+    data['marital.status'] = np.where((data['marital.status'] == 'Married-spouse-absent') | (data['marital.status'] == 'Separated') |
+                                      (data['marital.status'] == 'Divorced') | (data['marital.status'] == 'Widowed'), 'Not-married', data['marital.status'])
+    # Preprocessing for occupation                                  
+    data['occupation'] =  np.where((data['occupation'] == 'Tech-support') | (data['occupation'] == 'Adm-clerical') | (data['occupation'] == 'Priv-house-serv') |
+                                (data['occupation'] == 'Protective-serv') | (data['occupation'] == 'Armed-Forces') | (data['occupation'] == 'Other-service'), 'Other', data['occupation'])
+    data['occupation'] =  np.where((data['occupation'] == 'Craft-repair') | (data['occupation'] == 'Farming-fishing') | (data['occupation'] == 'Handlers-cleaners') |
+                                (data['occupation'] == 'Machine-op-inspct') | (data['occupation'] == 'Transport-moving'), 'Other', data['occupation'])
 
     return data
 
