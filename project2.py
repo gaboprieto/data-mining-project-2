@@ -54,7 +54,33 @@ def split_data(train_data, test_data):
 
 # Part 3 - Model Training and Evaluation
 def train_and_evaluate_models(X_train, y_train, X_val, y_val, X_test, y_test):
-    # do things...
+    # M0 - Random prediction model
+    pos_prob = y_train.mean()
+    random.seed(8)
+    y_pred_random = np.random.choice([0, 1], p=[1-pos_prob, pos_prob], size=len(y_test))
+    
+    # M1 - Full-grown decision tree
+    dt_full = DecisionTreeClassifier()
+    dt_full.fit(X_train, y_train)
+    y_pred_full = dt_full.predict(X_test)
+
+    # M2 - Pruned decision tree
+    nleafnodes = [None, 1000, 800, 600, 400, 200, 100, 50, 20, 10, 5, 2]
+    best_model = None
+    best_val_accuracy = 0
+
+    for nleaves in nleafnodes:
+        clf = DecisionTreeClassifier(max_leaf_nodes=nleaves)
+        clf.fit(X_train, y_train)
+
+        val_pred = clf.predict(X_val)
+        val_accuracy = accuracy_score(y_val, val_pred)
+
+        if val_accuracy > best_val_accuracy:
+            best_val_accuracy = val_accuracy
+            best_model = clf
+
+    y_pred_best = best_model.predict(X_test)
 
     return y_pred_random, y_pred_full, y_pred_best
 
@@ -79,6 +105,9 @@ if __name__ == "__main__":
     # Uncomment the parts you want to execute
     train_data = preprocess_data("./data/adult_train.csv")
     test_data = preprocess_data("./data/adult_test.csv")
+    
+    print(train_data.head())
+    print(test_data.head())
 
     # X_train, X_val, y_train, y_val, X_test, y_test = split_data(train_data, test_data)
 
