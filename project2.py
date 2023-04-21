@@ -9,6 +9,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+import matplotlib.pyplot as plt
 import random
 
 
@@ -89,11 +90,10 @@ def preprocess_data(file_name):
 
 # Part 2 - Data Splitting
 def split_data(train_data, test_data):
+    # set random seed for reproducibility
+    random.seed(8)
     # Split the training data into training and validation sets
-    train_data, val_data = train_test_split(
-        train_data, test_size=0.2, random_state=8
-    )  # Replace 0 with your team's ID
-
+    train_data, val_data = train_test_split(train_data, test_size=0.2, random_state=8)
     # Separate the features and target variables for train, val, and test sets
     X_train = train_data.drop("income_>50K", axis=1)
     y_train = train_data["income_>50K"]
@@ -126,7 +126,10 @@ def train_and_evaluate_models(X_train, y_train, X_val, y_val, X_test, y_test):
     best_model = None
     best_val_accuracy = 0
 
-    for nleaves in nleafnodes:
+    training_accuracies = []
+    validation_accuracies = []
+
+    for nleaves in nleafnodes[1:]:
         clf = DecisionTreeClassifier(max_leaf_nodes=nleaves)
         clf.fit(X_train, y_train)
 
@@ -137,14 +140,25 @@ def train_and_evaluate_models(X_train, y_train, X_val, y_val, X_test, y_test):
             best_val_accuracy = val_accuracy
             best_model = clf
 
+        train_pred = clf.predict(X_train)
+        train_accuracy = accuracy_score(y_train, train_pred)
+        training_accuracies.append(train_accuracy)
+        validation_accuracies.append(val_accuracy)
+
     y_pred_best = best_model.predict(X_test)
 
-    return y_pred_random, y_pred_full, y_pred_best
+    return (
+        y_pred_random,
+        y_pred_full,
+        y_pred_best,
+        training_accuracies,
+        validation_accuracies,
+        nleafnodes,
+    )
 
 
 # Part 4 - Model Analysis and Report
 def analyze_models_and_report(y_pred_random, y_pred_full, y_pred_best, y_test):
-    # Print the evaluation metrics for each model
     print("Random Prediction Model Metrics:", evaluate_model(y_test, y_pred_random))
 
     print("\nFull-grown Decision Tree Metrics:", evaluate_model(y_test, y_pred_full))
@@ -163,11 +177,10 @@ def evaluate_model(y_true, y_pred):
 
 
 def add_missing_columns(data, reference_columns):
-    # Exclude the target column from the reference_columns list
     reference_columns = [
         column for column in reference_columns if column != "income_>50K"
     ]
-
+    # Add missing columns to the test data
     for column in reference_columns:
         if column not in data.columns:
             data[column] = 0
@@ -175,6 +188,7 @@ def add_missing_columns(data, reference_columns):
 
 
 def reorder_columns(test_data, train_columns):
+    # Reorder the columns in the test data to match the training data
     ordered_columns = [col for col in train_columns if col != "income_>50K"]
     ordered_columns.append("income_>50K")
 
@@ -183,19 +197,47 @@ def reorder_columns(test_data, train_columns):
     return reordered_test_data
 
 
+def plot_accuracies(training_accuracies, validation_accuracies, nleafnodes):
+    plt.plot(nleafnodes, training_accuracies, label="Training")
+    plt.plot(nleafnodes, validation_accuracies, label="Validation")
+    plt.xlabel("Max Leaf Nodes")
+    plt.ylabel("Accuracy")
+    plt.legend()
+    plt.show()
+
+
 if __name__ == "__main__":
-    # Uncomment the parts you want to execute
+    # Load the data
     train_data = preprocess_data("./data/adult_train.csv")
     test_data = preprocess_data("./data/adult_test.csv")
 
+    # Preprocess the data
     test_data = add_missing_columns(test_data, train_data.columns)
 
+    # Reorder the columns
     test_data = reorder_columns(test_data, train_data.columns)
 
+    random.seed(8)
+
+    # Split the data
     X_train, X_val, y_train, y_val, X_test, y_test = split_data(train_data, test_data)
 
-    y_pred_random, y_pred_full, y_pred_best = train_and_evaluate_models(
-        X_train, y_train, X_val, y_val, X_test, y_test
-    )
+    # Get the shapes of the data
+    print("Train set shape:", X_train.shape)
+    print("Validation set shape:", X_val.shape)
+    print("Test set shape:", X_test.shape)
 
+    # Train and evaluate the models
+    (
+        y_pred_random,
+        y_pred_full,
+        y_pred_best,
+        training_accuracies,
+        validation_accuracies,
+        nleafnodes,
+    ) = train_and_evaluate_models(X_train, y_train, X_val, y_val, X_test, y_test)
+
+    # Plot the accuracies
+    plot_accuracies(training_accuracies, validation_accuracies, nleafnodes[1:])
+    # Analyze and report the models
     analyze_models_and_report(y_pred_random, y_pred_full, y_pred_best, y_test)
